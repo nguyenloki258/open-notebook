@@ -641,7 +641,31 @@ class Source(ObjectModel):
 
     async def delete(self) -> bool:
         """Delete source and clean up associated file, embeddings, and insights."""
-        # Clean up uploaded file if it exists
+        if self.id is None:
+            raise InvalidInputError("Cannot delete source without an ID")
+        source_id = ensure_record_id(self.id)
+
+        # Delete associated embeddings and insights first — must succeed
+        try:
+            await repo_query(
+                """
+                BEGIN TRANSACTION;
+                DELETE source_embedding WHERE source = $source_id;
+                DELETE source_insight WHERE source = $source_id;
+                COMMIT;
+                """,
+                {"source_id": source_id},
+            )
+            logger.debug(f"Deleted embeddings and insights for source {self.id}")
+        except Exception as e:
+            logger.error(
+                f"Failed to delete embeddings/insights for source {self.id}: {e}"
+            )
+            raise DatabaseOperationError(
+                f"Failed to clean up data for source {self.id}"
+            ) from e
+
+        # Clean up uploaded file if it exists (non-critical)
         if self.asset and self.asset.file_path:
             file_path = Path(self.asset.file_path)
             if file_path.exists():
@@ -657,24 +681,6 @@ class Source(ObjectModel):
                 logger.debug(
                     f"File {file_path} not found for source {self.id}, skipping cleanup"
                 )
-
-        # Delete associated embeddings and insights to prevent orphaned records
-        try:
-            source_id = ensure_record_id(self.id)
-            await repo_query(
-                "DELETE source_embedding WHERE source = $source_id",
-                {"source_id": source_id},
-            )
-            await repo_query(
-                "DELETE source_insight WHERE source = $source_id",
-                {"source_id": source_id},
-            )
-            logger.debug(f"Deleted embeddings and insights for source {self.id}")
-        except Exception as e:
-            logger.warning(
-                f"Failed to delete embeddings/insights for source {self.id}: {e}. "
-                "Continuing with source deletion."
-            )
 
         # Call parent delete to remove database record
         return await super().delete()

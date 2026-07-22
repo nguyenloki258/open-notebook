@@ -7,8 +7,8 @@
 VERSION := $(shell grep -m1 version pyproject.toml | cut -d'"' -f2)
 
 # Image names for both registries
-DOCKERHUB_IMAGE := lfnovo/open_notebook
-GHCR_IMAGE := ghcr.io/lfnovo/open-notebook
+DOCKERHUB_IMAGE := registry.bkholding.vn/ai.core.ainotebookapi
+GHCR_IMAGE := registry.bkholding.vn/ai.core.ainotebookapi
 
 # Build platforms
 PLATFORMS := linux/amd64,linux/arm64
