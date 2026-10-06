@@ -250,3 +250,24 @@ class TestTitleSortUsesAlias:
     def test_invalid_sort_field_returns_400(self, client):
         response = client.get("/api/sources?sort_by=bogus")
         assert response.status_code == 400
+
+
+class TestSourcesLimitValidation:
+    """Tests for limit parameter validation in the sources API."""
+
+    @pytest.mark.asyncio
+    @patch("api.routers.sources.repo_query", new_callable=AsyncMock)
+    async def test_sources_limit_boundary(self, mock_query, client):
+        mock_query.return_value = []
+        # limit=1000 should be valid and return 200
+        response = client.get("/api/sources?limit=1000")
+        assert response.status_code == 200
+
+        # limit=1001 should be invalid and return 422
+        response = client.get("/api/sources?limit=1001")
+        assert response.status_code == 422
+
+        # limit=0 should be invalid and return 422
+        response = client.get("/api/sources?limit=0")
+        assert response.status_code == 422
+

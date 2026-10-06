@@ -258,7 +258,7 @@ def parse_source_form_data(
 async def get_sources(
     notebook_id: Optional[str] = Query(None, description="Filter by notebook ID"),
     limit: int = Query(
-        50, ge=1, le=100, description="Number of sources to return (1-100)"
+        50, ge=1, le=1000, description="Number of sources to return (1-1000)"
     ),
     offset: int = Query(0, ge=0, description="Number of sources to skip"),
     sort_by: str = Query(
